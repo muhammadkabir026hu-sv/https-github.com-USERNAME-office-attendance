@@ -41,5 +41,5 @@ jobs:
           URL="$(cat live-url.txt)"
           curl -fsSL "$URL" -o live.html
           grep -qi 'DEO (W-EE) Gujrat' live.html
-          grep -qi 'Apply Leave' live.html
+          ! grep -qi 'Apply Leave' live.html
           echo "Verified live page: $URL"
