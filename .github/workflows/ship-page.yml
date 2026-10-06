@@ -1,0 +1,45 @@
+name: Publish Office Attendance to Public URL
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout website
+        uses: actions/checkout@v4
+
+      - name: Publish to ship.page
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST 'https://ship.page/deploy?agent=chatgpt' \
+            -H 'Content-Type: text/html' \
+            --data-binary @index.html \
+            -o deploy.json
+          cat deploy.json
+          python - <<'PY'
+          import json
+          d=json.load(open("deploy.json"))
+          url=d.get("url")
+          if not url:
+              raise SystemExit("No live URL returned: "+str(d))
+          print("LIVE_URL="+url)
+          with open("live-url.txt","w") as f:
+              f.write(url)
+          with open("${GITHUB_STEP_SUMMARY}","a") as f:
+              f.write("## Office Attendance Public URL\n\n"+url+"\n")
+          PY
+
+      - name: Verify live page
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="$(cat live-url.txt)"
+          curl -fsSL "$URL" -o live.html
+          grep -qi 'DEO (W-EE) Gujrat' live.html
+          grep -qi 'Apply Leave' live.html
+          echo "Verified live page: $URL"
